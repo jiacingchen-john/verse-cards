@@ -97,6 +97,9 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .vlist{margin-top:10px}
 .vs{display:flex;gap:10px;padding:11px 0;border-top:1px solid rgba(255,255,255,.08)}
 .vs:first-child{border-top:0;padding-top:4px}
+.vseg{font-size:12.5px;font-weight:700;letter-spacing:.06em;color:#ffd68c;opacity:.85;margin:18px 0 2px;padding:6px 0 4px;border-bottom:1px solid rgba(255,214,140,.35)}
+.vseg:first-child{margin-top:4px}
+.vseg+.vs{border-top:0}
 .vn{flex:none;min-width:24px;font-size:12.5px;font-weight:700;color:#ffd68c;opacity:.9;padding-top:4px;text-align:right;font-variant-numeric:tabular-nums}
 .vt{flex:1;min-width:0}
 .vz{font-size:17px;line-height:1.72}
@@ -271,9 +274,9 @@ document.querySelectorAll('.sheet').forEach(sh=>{let y0=null,dy=0;const body=sh.
 $('btnMenu').onclick=()=>{renderGrid();updateBar();openSheet('menuSheet')};
 $('btnNote').onclick=()=>{const o=list[cur];if(!o)return;
  const sec=(t,c,cls)=>c?'<div class="sec">'+t+'</div><div class="txt'+(cls?' '+cls:'')+'">'+esc(c)+'</div>':'';
- const head='<h3 class="ph">'+esc(o.title||o.ref)+(o.title?'<span class="pref">（'+esc(o.ref)+'）</span>':'')+'</h3>'+(o.sub?'<div class="psub">'+esc(o.sub)+'</div>':'');
- let body;const p=o.pv;
- if(p){body=(p.bg?'<p class="pbg">'+esc(p.bg)+'</p>':'')+'<div class="vlist">'+p.verses.map(v=>'<div class="vs"><span class="vn">'+esc(v.n)+'</span><div class="vt"><div class="vz">'+esc(v.zh)+'</div><div class="ve">'+esc(v.en)+'</div></div></div>').join('')+'</div>'}
+ let body;const p=o.pv,pref=(p&&p.ref)||o.ref;
+ const head='<h3 class="ph">'+esc(o.title||pref)+(o.title?'<span class="pref">（'+esc(pref)+'）</span>':'')+'</h3>'+(o.sub?'<div class="psub">'+esc(o.sub)+'</div>':'');
+ if(p){body=(p.bg?'<p class="pbg">'+esc(p.bg)+'</p>':'')+'<div class="vlist">'+p.verses.map(v=>(v.seg?'<div class="vseg">'+esc(v.seg)+'</div>':'')+'<div class="vs"><span class="vn">'+esc(v.n)+'</span><div class="vt"><div class="vz">'+esc(v.zh)+'</div><div class="ve">'+esc(v.en)+'</div></div></div>').join('')+'</div>'}
  else body=sec('經文（和合本）',o.zh||o.bzh)+sec('NIV',o.niv||o.bniv,'en');
  const meta='<div class="pmeta">'+(o.cat?'<div><span>分類</span>'+esc(o.cat)+'</div>':'')+(o.date?'<div><span>收藏日期</span>'+esc(o.date)+'</div>':'')+'</div>'+
   (o.tagList.length?'<div class="chips wrapc ptags">'+o.tagList.map(t=>'<button class="chip" data-tag="'+esc(t)+'">'+esc(t)+'</button>').join('')+'</div>':'');
