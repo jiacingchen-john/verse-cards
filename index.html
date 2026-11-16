@@ -89,6 +89,21 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 22px 4px;margin:0 -22px}
 .chips::-webkit-scrollbar{display:none}
 .chips.wrapc{flex-wrap:wrap;margin:0;padding:0}
+#noteSheet .sbody{padding:4px 22px calc(var(--sab) + 30px)}
+.ph{font-size:20px;line-height:1.45;font-weight:800;margin:4px 0 2px!important;letter-spacing:.02em}
+.ph .pref{font-weight:600;opacity:.85;white-space:nowrap}
+.psub{font-size:14px;opacity:.6;margin-bottom:12px;font-family:-apple-system,"Helvetica Neue",Arial,sans-serif}
+.pbg{font-size:14.5px;line-height:1.75;opacity:.78;margin:10px 0 16px;padding:10px 14px;background:rgba(255,255,255,.06);border-left:3px solid rgba(255,214,140,.55);border-radius:4px 10px 10px 4px}
+.vlist{margin-top:10px}
+.vs{display:flex;gap:10px;padding:11px 0;border-top:1px solid rgba(255,255,255,.08)}
+.vs:first-child{border-top:0;padding-top:4px}
+.vn{flex:none;min-width:24px;font-size:12.5px;font-weight:700;color:#ffd68c;opacity:.9;padding-top:4px;text-align:right;font-variant-numeric:tabular-nums}
+.vt{flex:1;min-width:0}
+.vz{font-size:17px;line-height:1.72}
+.ve{font-size:14.5px;line-height:1.55;font-style:italic;opacity:.8;margin-top:5px;font-family:Georgia,"Times New Roman",serif}
+.pmeta{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;opacity:.6;margin:22px 0 10px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)}
+.pmeta span{opacity:.75;margin-right:6px;letter-spacing:.08em}
+.ptags .chip{font-size:12.5px;padding:5px 11px;opacity:.85}
 .chip{flex:none;font-size:14px;padding:7px 14px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);white-space:nowrap}
 .chip.on{background:#fff;color:#1c1712;border-color:#fff;font-weight:600}
 #q{width:100%;font:inherit;font-size:16px;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:11px 14px;outline:none}
@@ -172,7 +187,7 @@ function build(headers,rows){const h0=headers.map(x=>String(x||'').trim());const
   o.fr=o.fref||o.ref;o.fz=o.fzh||o.zh;o.fn=o.fniv||o.niv;
   const n=parseInt((o.id.match(/\d+/)||[o.row])[0],10);o.bg=n%BGS.length;
   o.hay=[o.ref,o.fref,o.zh,o.niv,o.tags,o.title,o.sub,o.bzh,o.bniv,o.fzh,o.fniv].join('\n').toLowerCase();out.push(o)});return out}
-async function loadData(){const r=await fetch(DATA_URL+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('data.json '+r.status);const d=await r.json();return build(d.headers,d.rows)}
+async function loadData(){const r=await fetch(DATA_URL+'?_='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('data.json '+r.status);const d=await r.json();const out=build(d.headers,d.rows),P=d.passages||{};out.forEach(o=>{const p=P[o.id];if(p&&p.verses&&p.verses.length){o.pv=p;if(p.bg)o.hay+='\n'+p.bg.toLowerCase()}});return out}
 function notice(t){const n=$('notice');n.textContent=t||'';n.style.display=t?'block':'none';if(t)setTimeout(()=>n.style.display='none',6000)}
 async function load(){let data=null;
  try{data=await loadData()}catch(e){console.warn('讀取 data.json 失敗：',e.message)}
@@ -256,10 +271,13 @@ document.querySelectorAll('.sheet').forEach(sh=>{let y0=null,dy=0;const body=sh.
 $('btnMenu').onclick=()=>{renderGrid();updateBar();openSheet('menuSheet')};
 $('btnNote').onclick=()=>{const o=list[cur];if(!o)return;
  const sec=(t,c,cls)=>c?'<div class="sec">'+t+'</div><div class="txt'+(cls?' '+cls:'')+'">'+esc(c)+'</div>':'';
- $('noteBody').innerHTML='<h3>'+esc(o.ref)+'</h3><div style="opacity:.7;font-size:14px">'+esc(o.title)+(o.sub?' · '+esc(o.sub):'')+'</div>'+
-  sec('經文（和合本）',o.zh||o.bzh)+sec('NIV',o.niv||o.bniv,'en')+sec('分類',o.cat)+
-  (o.tagList.length?'<div class="sec">標籤</div><div class="chips wrapc">'+o.tagList.map(t=>'<button class="chip" data-tag="'+esc(t)+'">'+esc(t)+'</button>').join('')+'</div>':'')+
-  sec('收藏日期',o.date);
+ const head='<h3 class="ph">'+esc(o.title||o.ref)+(o.title?'<span class="pref">（'+esc(o.ref)+'）</span>':'')+'</h3>'+(o.sub?'<div class="psub">'+esc(o.sub)+'</div>':'');
+ let body;const p=o.pv;
+ if(p){body=(p.bg?'<p class="pbg">'+esc(p.bg)+'</p>':'')+'<div class="vlist">'+p.verses.map(v=>'<div class="vs"><span class="vn">'+esc(v.n)+'</span><div class="vt"><div class="vz">'+esc(v.zh)+'</div><div class="ve">'+esc(v.en)+'</div></div></div>').join('')+'</div>'}
+ else body=sec('經文（和合本）',o.zh||o.bzh)+sec('NIV',o.niv||o.bniv,'en');
+ const meta='<div class="pmeta">'+(o.cat?'<div><span>分類</span>'+esc(o.cat)+'</div>':'')+(o.date?'<div><span>收藏日期</span>'+esc(o.date)+'</div>':'')+'</div>'+
+  (o.tagList.length?'<div class="chips wrapc ptags">'+o.tagList.map(t=>'<button class="chip" data-tag="'+esc(t)+'">'+esc(t)+'</button>').join('')+'</div>':'');
+ $('noteBody').innerHTML=head+body+meta;
  $('noteBody').scrollTop=0;openSheet('noteSheet')};
 $('noteBody').onclick=e=>{const t=e.target.dataset&&e.target.dataset.tag;if(t){st.tag=t;syncChips();closeSheets();rebuild();toast('標籤：'+t)}};
 
