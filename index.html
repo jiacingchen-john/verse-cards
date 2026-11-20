@@ -122,6 +122,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 #grid .gt b{font-size:15px;line-height:1.3;font-weight:800;text-shadow:0 1px 3px rgba(0,0,0,.75),0 2px 10px rgba(0,0,0,.6)}
 #grid .gt span{font-size:10.5px;line-height:1.4;opacity:.85;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 #grid button.cur{outline:2px solid #fff;outline-offset:1px}
+#sortLbl{position:fixed;z-index:20;top:calc(var(--sat) + 68px);left:calc(50% - var(--colw)/2 + var(--sal) + 16px);background:rgba(20,18,18,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:5px 12px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
+#sortLbl.show{opacity:1}
 #toast{position:fixed;z-index:50;left:50%;bottom:calc(var(--sab) + 112px);transform:translateX(-50%) translateY(10px);background:rgba(30,28,26,.9);padding:10px 18px;border-radius:999px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%)}
 #notice{position:fixed;z-index:25;left:50%;transform:translateX(-50%);top:calc(var(--sat) + 70px);font-size:12px;background:rgba(0,0,0,.5);padding:6px 12px;border-radius:999px;display:none;max-width:90vw;text-align:center}
@@ -135,7 +137,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 </head>
 <body>
 <div id="feed"><div class="empty">載入中…</div></div>
-<button class="round" id="btnShuffle" aria-label="重新洗牌"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/></svg></button>
+<button class="round" id="btnShuffle" aria-label="排序：隨機"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/></svg></button><div id="sortLbl"></div>
 <button class="round" id="btnMenu" aria-label="更多"><svg viewBox="0 0 24 24" fill="#fff"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
 <div id="notice"></div>
 <nav id="bar">
@@ -153,7 +155,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
  <div class="sec">標籤</div><div class="chips" id="cTag"></div>
  <div class="sec">經卷</div><div class="chips" id="cBook"></div>
  <div class="sec">顯示</div>
- <div class="chips wrapc"><button class="chip" id="tFav">♡ 我的收藏</button><button class="chip" data-sort="random">隨機</button><button class="chip" data-sort="date">依收藏日期</button></div>
+ <div class="chips wrapc"><button class="chip" id="tFav">♡ 我的收藏</button><button class="chip" data-sort="random">隨機</button><button class="chip" data-sort="asc">從舊到新</button><button class="chip" data-sort="desc">從新到舊</button></div>
  <div class="sec">自動播放</div>
  <div class="chips wrapc" id="cAuto"><button class="chip" id="tAuto">開啟</button><button class="chip" data-s="5">5 秒</button><button class="chip" data-s="10">10 秒</button><button class="chip" data-s="20">20 秒</button><button class="chip" data-s="30">30 秒</button></div>
  <div class="sec">縮圖牆</div><div id="grid"></div>
@@ -173,8 +175,9 @@ const FIELDS={date:['收藏日期'],ref:['經卷章節'],cat:['分類'],zh:['經
 const POS={date:0,ref:1,cat:2,zh:3,niv:4,tags:5,title:6,sub:7,id:8,img:9,show:10,bzh:11,bniv:12,fref:13,fzh:14,fniv:15};
 const $=s=>document.getElementById(s),feed=$('feed');
 let all=[],list=[],slides=[],cur=0,timer=null,autoSec=10;
+const SORTS={random:{n:'隨機',i:'<path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/>'},asc:{n:'從舊到新',i:'<path d="M7 20V4"/><path d="m3 8 4-4 4 4"/><path d="M14 6h7"/><path d="M14 12h5"/><path d="M14 18h3"/>'},desc:{n:'從新到舊',i:'<path d="M7 4v16"/><path d="m3 16 4 4 4-4"/><path d="M14 6h3"/><path d="M14 12h5"/><path d="M14 18h7"/>'}},SORT_SEQ=['random','asc','desc'];
 const st={q:'',cat:'',tag:'',book:'',fav:false,sort:'random',auto:false};
-try{const p=JSON.parse(localStorage.getItem(PREF)||'{}');if(p.sort)st.sort=p.sort;st.fav=!!p.fav;if(p.autoSec)autoSec=p.autoSec}catch(e){}
+try{const p=JSON.parse(localStorage.getItem(PREF)||'{}');if(p.sort)st.sort=p.sort==='date'?'desc':p.sort;if(!SORTS[st.sort])st.sort='random';st.fav=!!p.fav;if(p.autoSec)autoSec=p.autoSec}catch(e){}
 let favs=new Set(JSON.parse(localStorage.getItem(FAV)||'[]'));
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -205,7 +208,8 @@ let order=new Map();
 function shuffleOrder(){const a=all.map((o,i)=>i);for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}order=new Map(a.map((v,i)=>[all[v].key,i]))}
 function filtered(){const q=st.q.trim().toLowerCase();
  let l=all.filter(o=>(!q||o.hay.includes(q))&&(!st.cat||o.cat===st.cat)&&(!st.tag||o.tagList.includes(st.tag))&&(!st.book||o.book===st.book)&&(!st.fav||favs.has(o.key)));
- if(st.sort==='date')l.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||b.row-a.row);else l.sort((a,b)=>order.get(a.key)-order.get(b.key));return l}
+ const cid=o=>parseInt((o.id.match(/\d+/)||[o.row])[0],10),ck=(a,b)=>(a.date||'').localeCompare(b.date||'')||cid(a)-cid(b);
+ if(st.sort==='asc')l.sort(ck);else if(st.sort==='desc')l.sort((a,b)=>ck(b,a));else l.sort((a,b)=>order.get(a.key)-order.get(b.key));return l}
 const bgUrl=o=>'bg/'+BGS[o.vb]+'.webp';
 
 /* ---------- render ---------- */
@@ -248,18 +252,21 @@ function buildChips(){chipRow($('cCat'),'cat',uniq(all.map(o=>o.cat)));chipRow($
 function syncChips(){[['cCat','cat'],['cTag','tag'],['cBook','book']].forEach(([id,k])=>$(id).querySelectorAll('.chip').forEach(b=>b.classList.toggle('on',b.dataset.v===st[k])));
  $('tFav').classList.toggle('on',st.fav);$('tFav').textContent=(st.fav?'♥':'♡')+' 我的收藏';
  document.querySelectorAll('[data-sort]').forEach(b=>b.classList.toggle('on',b.dataset.sort===st.sort));
+ const S=SORTS[st.sort];$('btnShuffle').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+S.i+'</svg>';$('btnShuffle').setAttribute('aria-label','排序：'+S.n);
  $('tAuto').classList.toggle('on',st.auto);$('tAuto').textContent=st.auto?'播放中':'開啟';
  document.querySelectorAll('#cAuto [data-s]').forEach(b=>b.classList.toggle('on',+b.dataset.s===autoSec));
  localStorage.setItem(PREF,JSON.stringify({fav:st.fav,sort:st.sort,autoSec}))}
 function renderGrid(){$('grid').innerHTML=list.map((o,i)=>'<button data-i="'+i+'" class="'+(i===cur?'cur':'')+'" style="background-image:url(bg/'+BGS[o.vb]+'-mini.webp)"><div class="gt"><div><b>'+esc(o.title)+'</b><span>'+esc(o.fz)+'</span></div><small>— '+esc(o.fr)+'</small></div></button>').join('')}
 $('grid').onclick=e=>{const b=e.target.closest('button');if(!b)return;closeSheets();go(+b.dataset.i,false)};
 $('tFav').onclick=()=>{st.fav=!st.fav;syncChips();rebuild()};
-document.querySelectorAll('[data-sort]').forEach(b=>b.onclick=()=>{const k=list[cur]&&list[cur].key;st.sort=b.dataset.sort;syncChips();rebuild(k)});
+function setSort(m){if(m==='random')shuffleOrder();st.sort=m;syncChips();rebuild();sortLabel()}
+function sortLabel(){const e=$('sortLbl');e.textContent='排序：'+SORTS[st.sort].n;e.classList.add('show');clearTimeout(sortLabel.t);sortLabel.t=setTimeout(()=>e.classList.remove('show'),2200)}
+document.querySelectorAll('[data-sort]').forEach(b=>b.onclick=()=>setSort(b.dataset.sort));
 $('tAuto').onclick=()=>{st.auto=!st.auto;syncChips();st.auto?startAuto():stopAuto()};
 document.querySelectorAll('#cAuto [data-s]').forEach(b=>b.onclick=()=>{autoSec=+b.dataset.s;syncChips();if(st.auto)startAuto()});
 let qt;$('q').oninput=()=>{clearTimeout(qt);qt=setTimeout(()=>{st.q=$('q').value;rebuild()},250)};
 $('btnReload').onclick=()=>{const k=list[cur]&&list[cur].key;$('sync').textContent='同步中…';load().then(()=>{if(k)rebuild(k);toast('資料已更新')})};
-$('btnShuffle').onclick=()=>{shuffleOrder();st.sort='random';syncChips();rebuild();toast('已重新洗牌')};
+$('btnShuffle').onclick=()=>setSort(SORT_SEQ[(SORT_SEQ.indexOf(st.sort)+1)%SORT_SEQ.length]);
 function startAuto(){clearInterval(timer);timer=setInterval(()=>go(cur+1),autoSec*1000)}
 function stopAuto(){clearInterval(timer);timer=null}
 
